@@ -43,7 +43,7 @@ const EncuestaWebinar = () => {
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzB-OSuWr_In4R2Ei6VCwx0AQwcv77s3XU5RefGsCge6Oj4n-e-hckrlkJrObVPCZYY/exec";
 
   const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const API_URL = isLocal ? GOOGLE_SCRIPT_URL : '/api/webinar';
+  const API_URL = '/api/webinar';
 
   const [tipoUsuario, setTipoUsuario] = useState('');
   const [nombreUsuario, setNombreUsuario] = useState('');
