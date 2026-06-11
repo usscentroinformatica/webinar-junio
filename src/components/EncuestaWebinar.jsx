@@ -40,9 +40,7 @@ const SuccessIcon = () => (
 );
 
 const EncuestaWebinar = () => {
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzB-OSuWr_In4R2Ei6VCwx0AQwcv77s3XU5RefGsCge6Oj4n-e-hckrlkJrObVPCZYY/exec";
-
-  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  
   const API_URL = '/api/webinar';
 
   const [tipoUsuario, setTipoUsuario] = useState('');
@@ -76,18 +74,16 @@ const EncuestaWebinar = () => {
       try {
         const SHEET_ID = '1ubJ9lE41tJkvdX0m_UoPIA6sI-SpF95h8h-oDfd0DpI';
         const response = await fetch(`https://opensheet.elk.sh/${SHEET_ID}/BaseUnificada`);
-        
+
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Base cargada:', data.length, 'registros');
-          console.log('📋 Primer estudiante:', data[0]);
-          console.log('📖 PlanEstudio del primer estudiante:', data[0]?.["PlanEstudio"]);
+          console.log('Base cargada:', data.length, 'estudiantes');
           setBaseEstudiantes(data);
         } else {
-          console.warn('⚠️ No se pudo cargar la base');
+          console.warn('No se pudo cargar la base');
         }
       } catch (error) {
-        console.error('❌ Error cargando base:', error);
+        console.error('Error cargando base:', error);
       }
     };
 
@@ -229,29 +225,24 @@ const EncuestaWebinar = () => {
 
       const registro = {
         nombreCompleto: formData.nombreCompleto.trim(),
-        email: correoParaEnviar,
-        tipoUsuario: tipoUsuarioTexto,
-        solicitaCertificado: formData.solicitaCertificado,
-        comentarios: formData.comentarios || '',
         curso: formData.curso || '',
-        pead: formData.pead || ''
+        pead: formData.pead || '',
+        comentarios: formData.comentarios || '',
+        solicitaCertificado: formData.solicitaCertificado,
+        tipoUsuario: tipoUsuarioTexto,
+        email: correoParaEnviar,
+        planEstudio: planEstudio || ''
       };
-
-      if (esEstudianteUSS && planEstudio) {
-        registro.planEstudio = planEstudio;
-      }
 
       console.log('📤 Enviando registro:', registro);
 
       setProgreso({ actual: 1, total: 1 });
 
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(req.body)
-});
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registro)
+      });
 
       const result = await response.json();
       const isExito = result.data ? result.data.success : result.success;
@@ -544,7 +535,7 @@ const EncuestaWebinar = () => {
     );
   }
 
-  // Pantalla del formulario principal
+  // Pantalla del formulario principal con Plan de Estudio
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', fontFamily: 'Roboto, Arial, sans-serif' }}>
       <header style={{ backgroundColor: '#ffffff', borderBottom: '6px solid #63ed12', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
