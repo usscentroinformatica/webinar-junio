@@ -245,10 +245,12 @@ const EncuestaWebinar = () => {
 
       setProgreso({ actual: 1, total: 1 });
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(registro)  // ← Asegúrate que sea JSON.stringify
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(req.body)
 });
 
       const result = await response.json();
