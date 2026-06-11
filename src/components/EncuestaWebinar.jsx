@@ -201,42 +201,89 @@ const EncuestaWebinar = () => {
   };
 
   const enviarEncuesta = async () => {
-    if (!formData.nombreCompleto.trim()) {
-      setError('El nombre completo es requerido');
-      return;
+  if (!formData.nombreCompleto.trim()) {
+    setError('El nombre completo es requerido');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+
+  try {
+    const esEstudianteUSS = tipoUsuario === 'uss' && estudiantesEncontrados.length > 0;
+    const tipoUsuarioTexto = esEstudianteUSS ? 'Estudiante USS' : 'Externo';
+    let correoParaEnviar = '';
+
+    if (esEstudianteUSS) {
+      correoParaEnviar = `${nombreUsuario}@uss.edu.pe`.toLowerCase();
+    } else if (tipoUsuario === 'externo') {
+      if (!correoExterno.trim()) {
+        throw new Error('El correo electrónico es requerido');
+      }
+      correoParaEnviar = correoExterno.trim();
     }
 
-    setLoading(true);
-    setError('');
-
-    try {
-      const esEstudianteUSS = tipoUsuario === 'uss' && estudiantesEncontrados.length > 0;
-      const tipoUsuarioTexto = esEstudianteUSS ? 'Estudiante USS' : 'Externo';
-      let correoParaEnviar = '';
-
-      if (esEstudianteUSS) {
-        correoParaEnviar = `${nombreUsuario}@uss.edu.pe`.toLowerCase();
-      } else if (tipoUsuario === 'externo') {
-        if (!correoExterno.trim()) {
-          throw new Error('El correo electrónico es requerido');
-        }
-        correoParaEnviar = correoExterno.trim();
+    // 🔴 CREAR UN REGISTRO POR CADA CURSO DEL ESTUDIANTE
+    const registros = [];
+    
+    if (esEstudianteUSS) {
+      // Para cada curso del estudiante, crear un registro
+      for (const curso of estudiantesEncontrados) {
+        const nombreCurso = curso["Curso"] || '';
+        const seccionPead = curso["Sección (PEAD)"] || '';
+        const nombreDocente = curso["Docente"] || '';
+        const turnoCurso = curso["Turno"] || '';
+        const diasCurso = curso["Días"] || '';
+        const horaInicioCurso = curso["Hora inicio"] || '';
+        const horaFinCurso = curso["Hora fin"] || '';
+        
+        console.log(`📚 Procesando curso: ${nombreCurso} - ${seccionPead}`);
+        
+        registros.push({
+          nombreCompleto: formData.nombreCompleto.trim(),
+          email: correoParaEnviar,
+          tipoUsuario: tipoUsuarioTexto,
+          solicitaCertificado: formData.solicitaCertificado,
+          comentarios: formData.comentarios || '',
+          curso: nombreCurso,
+          pead: seccionPead,
+          docente: nombreDocente,
+          turno: turnoCurso,
+          dias: diasCurso,
+          horaInicio: horaInicioCurso,
+          horaFin: horaFinCurso,
+          planEstudio: planEstudio || ''
+        });
       }
-
-      const registro = {
+    } else {
+      // Usuario externo: un solo registro
+      registros.push({
         nombreCompleto: formData.nombreCompleto.trim(),
+        email: correoParaEnviar,
+        tipoUsuario: tipoUsuarioTexto,
+        solicitaCertificado: formData.solicitaCertificado,
+        comentarios: formData.comentarios || '',
         curso: formData.curso || '',
         pead: formData.pead || '',
-        comentarios: formData.comentarios || '',
-        solicitaCertificado: formData.solicitaCertificado,
-        tipoUsuario: tipoUsuarioTexto,
-        email: correoParaEnviar,
-        planEstudio: planEstudio || ''
-      };
+        docente: formData.docente || '',
+        turno: formData.turno || '',
+        dias: formData.dias || '',
+        horaInicio: formData.horaInicio || '',
+        horaFin: formData.horaFin || '',
+        planEstudio: ''
+      });
+    }
 
-      console.log('📤 Enviando registro:', registro);
+    console.log(`📤 Enviando ${registros.length} registro(s):`, registros);
 
-      setProgreso({ actual: 1, total: 1 });
+    setProgreso({ actual: 0, total: registros.length });
+
+    // Enviar cada registro individualmente
+    for (let i = 0; i < registros.length; i++) {
+      const registro = registros[i];
+      console.log(`📝 Enviando registro ${i + 1}/${registros.length}:`, registro);
+
+      setProgreso({ actual: i + 1, total: registros.length });
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -245,27 +292,35 @@ const EncuestaWebinar = () => {
       });
 
       const result = await response.json();
+      console.log(`📥 Respuesta para ${registro.curso}:`, result);
+
       const isExito = result.data ? result.data.success : result.success;
 
       if (!isExito) {
-        throw new Error(result.data?.error || result.error || 'Error al registrar');
+        throw new Error(result.data?.error || result.error || `Error al registrar el curso ${registro.curso}`);
       }
 
-      console.log('✅ Registro exitoso');
-      setExitoModal(true);
-      setTimeout(() => {
-        resetearTodo();
-        setExitoModal(false);
-        setPaso('seleccion');
-      }, 3000);
-
-    } catch (error) {
-      console.error('❌ Error:', error);
-      setError(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+      // Pequeña pausa entre registros para evitar sobrecarga
+      if (i < registros.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
-  };
+
+    console.log(`✅ Proceso completado: ${registros.length} cursos registrados`);
+    setExitoModal(true);
+    setTimeout(() => {
+      resetearTodo();
+      setExitoModal(false);
+      setPaso('seleccion');
+    }, 3000);
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    setError(`Error: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetearTodo = () => {
     setTipoUsuario('');
