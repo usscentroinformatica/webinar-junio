@@ -1,6 +1,6 @@
 // api/webinar.js
+
 export default async function handler(req, res) {
-  // Habilitar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -9,72 +9,68 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzB-OSuWr_In4R2Ei6VCwx0AQwcv77s3XU5RefGsCge6Oj4n-e-hckrlkJrObVPCZYY/exec";
+  const GOOGLE_SCRIPT_URL =
+    'https://script.google.com/macros/s/AKfycbxXshTKXGBM3S9lxEii_ZmoVNd8sza_BEz1SmYPCpSs2Vm1e4yhj4aTl9vkxA-yb0o_/exec';
 
   try {
-    // GET para verificar
+    // ==================== GET ====================
     if (req.method === 'GET') {
       let url = GOOGLE_SCRIPT_URL;
+
       if (req.query.email) {
         url += `?email=${encodeURIComponent(req.query.email)}`;
       }
+
       const response = await fetch(url);
       const data = await response.json();
+
       return res.status(200).json(data);
     }
 
-    // POST para guardar
+    // ==================== POST ====================
     if (req.method === 'POST') {
-      // 🔴 IMPORTANTE: Obtener el body correctamente
-      let bodyData = req.body;
-      
-      // Si viene como string, parsearlo
-      if (typeof bodyData === 'string') {
-        try {
-          bodyData = JSON.parse(bodyData);
-        } catch (e) {
-          bodyData = req.body;
-        }
-      }
-      
-      // Construir parámetros
-      const params = new URLSearchParams();
-      params.append('nombreCompleto', bodyData.nombreCompleto || '');
-      params.append('email', bodyData.email || '');
-      params.append('planEstudio', bodyData.planEstudio || '');
-      params.append('tipoUsuario', bodyData.tipoUsuario || '');
-      params.append('solicitaCertificado', bodyData.solicitaCertificado || 'no');
-      params.append('comentarios', bodyData.comentarios || '');
-      params.append('curso', bodyData.curso || '');
-      params.append('pead', bodyData.pead || '');
-
-      console.log('📤 Parámetros enviados:', params.toString());
+      console.log('📤 Datos recibidos del frontend:', req.body);
 
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json'
         },
-        body: params.toString()
+        body: JSON.stringify(req.body)
       });
 
       const text = await response.text();
-      console.log('📥 Respuesta:', text);
+
+      console.log('📥 Respuesta Apps Script:', text);
 
       let data;
+
       try {
         data = JSON.parse(text);
-      } catch (e) {
-        data = { success: true, raw: text };
+      } catch (error) {
+        console.error('❌ Error parseando respuesta:', error);
+
+        data = {
+          success: false,
+          error: 'La respuesta del Apps Script no es un JSON válido',
+          raw: text
+        };
       }
-      
+
       return res.status(200).json(data);
     }
 
-    return res.status(405).json({ error: 'Método no permitido' });
+    return res.status(405).json({
+      success: false,
+      error: 'Método no permitido'
+    });
 
   } catch (error) {
-    console.error('❌ Error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    console.error('❌ Error API:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 }
