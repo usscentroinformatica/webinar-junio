@@ -1,62 +1,59 @@
 // api/webinar.js
 export default async function handler(req, res) {
-    // Habilitar CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // ✅ NUEVA URL VERSIÓN 2
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxXshTKXGBM3S9lxEii_ZmoVNd8sza_BEz1SmYPCpSs2Vm1e4yhj4aTl9vkxA-yb0o_/exec";
+
+  try {
+    if (req.method === 'GET') {
+      let url = GOOGLE_SCRIPT_URL;
+      if (req.query.email) {
+        url += `?email=${encodeURIComponent(req.query.email)}`;
+      }
+      const response = await fetch(url);
+      const data = await response.json();
+      return res.status(200).json(data);
     }
 
-    // ✅ NUEVA URL de Google Apps Script
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzB-OSuWr_In4R2Ei6VCwx0AQwcv77s3XU5RefGsCge6Oj4n-e-hckrlkJrObVPCZYY/exec";
-    
-    try {
-        let url = GOOGLE_SCRIPT_URL;
-        let options = { method: req.method };
+    if (req.method === 'POST') {
+      // Construir parámetros incluyendo planEstudio
+      const params = new URLSearchParams();
+      params.append('nombreCompleto', req.body.nombreCompleto || '');
+      params.append('email', req.body.email || '');
+      params.append('planEstudio', req.body.planEstudio || ''); // ← NUEVO CAMPO
+      params.append('tipoUsuario', req.body.tipoUsuario || '');
+      params.append('solicitaCertificado', req.body.solicitaCertificado || 'no');
+      params.append('comentarios', req.body.comentarios || '');
+      params.append('curso', req.body.curso || '');
+      params.append('pead', req.body.pead || '');
 
-        // GET para verificar duplicados
-        if (req.method === 'GET') {
-            if (req.query.email) {
-                url += `?email=${encodeURIComponent(req.query.email)}`;
-            }
-            console.log('📡 Verificando registro:', url);
-        }
+      console.log('📤 Enviando a Google Script:', params.toString());
 
-        // POST para enviar registro
-        if (req.method === 'POST') {
-            options.headers = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            };
-            options.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      });
 
-            console.log('📤 Enviando registro a Google Script (JSON):', options.body);
-        }
-
-        const response = await fetch(url, options);
-        const text = await response.text();
-
-        console.log('📥 Respuesta de Google Script:', text.substring(0, 200));
-
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (parseError) {
-            data = { success: true, raw: text };
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: data
-        });
-
-    } catch (error) {
-        console.error('❌ Error en función serverless:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { success: true, raw: text };
+      }
+      return res.status(200).json(data);
     }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
 }
