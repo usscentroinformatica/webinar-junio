@@ -246,10 +246,10 @@ const EncuestaWebinar = () => {
       setProgreso({ actual: 1, total: 1 });
 
       const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registro)
-      });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(registro)  // ← Asegúrate que sea JSON.stringify
+});
 
       const result = await response.json();
       const isExito = result.data ? result.data.success : result.success;
