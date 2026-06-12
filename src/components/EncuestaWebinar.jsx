@@ -77,13 +77,14 @@ const EncuestaWebinar = () => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Base cargada:', data.length, 'estudiantes');
+          console.log('✅ Base cargada:', data.length, 'estudiantes');
+          console.log('📋 Columnas disponibles:', Object.keys(data[0] || {}));
           setBaseEstudiantes(data);
         } else {
-          console.warn('No se pudo cargar la base');
+          console.warn('⚠️ No se pudo cargar la base');
         }
       } catch (error) {
-        console.error('Error cargando base:', error);
+        console.error('❌ Error cargando base:', error);
       }
     };
 
@@ -147,7 +148,7 @@ const EncuestaWebinar = () => {
       return false;
     });
 
-    console.log('📚 Estudiantes encontrados:', estudiantesCoincidentes.length);
+    console.log('📚 Cursos encontrados:', estudiantesCoincidentes.length);
 
     if (estudiantesCoincidentes.length === 0) {
       const emailsEjemplo = baseEstudiantes.slice(0, 5).map(e => e["Correo institucional"]);
@@ -157,27 +158,19 @@ const EncuestaWebinar = () => {
       return;
     }
 
+    // 🔴 LOG PARA VER LOS DATOS REALES
+    console.log('🔍 DATOS DEL PRIMER CURSO:', estudiantesCoincidentes[0]);
+    console.log('🔍 VALOR DE "Curso":', estudiantesCoincidentes[0]?.["Curso"]);
+    console.log('🔍 VALOR DE "Sección (PEAD)":', estudiantesCoincidentes[0]?.["Sección (PEAD)"]);
+    console.log('🔍 VALOR DE "Docente":', estudiantesCoincidentes[0]?.["Docente"]);
+
     setEstudiantesEncontrados(estudiantesCoincidentes);
 
     const planEstudioValue = estudiantesCoincidentes[0]["PlanEstudio"] || '';
     console.log('📖 PlanEstudio encontrado:', planEstudioValue);
     setPlanEstudio(planEstudioValue);
 
-    const primerEstudiante = estudiantesCoincidentes[0];
-    
-    setFormData({
-      nombreCompleto: primerEstudiante["Nombre completo"] || '',
-      curso: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Curso"] || '') : '',
-      pead: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Sección (PEAD)"] || '') : '',
-      docente: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Docente"] || '') : '',
-      turno: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Turno"] || '') : '',
-      dias: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Días"] || '') : '',
-      horaInicio: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Hora inicio"] || '') : '',
-      horaFin: estudiantesCoincidentes.length === 1 ? (primerEstudiante["Hora fin"] || '') : '',
-      solicitaCertificado: 'no',
-      comentarios: ''
-    });
-
+    // No establecemos formData con un solo curso, permitimos que el usuario seleccione
     setPaso('formulario');
     setLoading(false);
   };
@@ -201,100 +194,105 @@ const EncuestaWebinar = () => {
   };
 
   const enviarEncuesta = async () => {
-  if (!formData.nombreCompleto.trim()) {
-    setError('El nombre completo es requerido');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-
-  try {
-    const esEstudianteUSS = tipoUsuario === 'uss' && estudiantesEncontrados.length > 0;
-    const tipoUsuarioTexto = esEstudianteUSS ? 'Estudiante USS' : 'Externo';
-    let correoParaEnviar = '';
-
-    if (esEstudianteUSS) {
-      correoParaEnviar = `${nombreUsuario}@uss.edu.pe`.toLowerCase();
-    } else if (tipoUsuario === 'externo') {
-      if (!correoExterno.trim()) {
-        throw new Error('El correo electrónico es requerido');
-      }
-      correoParaEnviar = correoExterno.trim();
+    if (!formData.nombreCompleto.trim()) {
+      setError('El nombre completo es requerido');
+      return;
     }
 
-    const registros = [];
-    
-    if (esEstudianteUSS) {
-      for (const curso of estudiantesEncontrados) {
+    setLoading(true);
+    setError('');
+
+    try {
+      const esEstudianteUSS = tipoUsuario === 'uss' && estudiantesEncontrados.length > 0;
+      const tipoUsuarioTexto = esEstudianteUSS ? 'Estudiante USS' : 'Externo';
+      let correoParaEnviar = '';
+
+      if (esEstudianteUSS) {
+        correoParaEnviar = `${nombreUsuario}@uss.edu.pe`.toLowerCase();
+      } else if (tipoUsuario === 'externo') {
+        if (!correoExterno.trim()) {
+          throw new Error('El correo electrónico es requerido');
+        }
+        correoParaEnviar = correoExterno.trim();
+      }
+
+      const registros = [];
+      
+      if (esEstudianteUSS) {
+        for (const curso of estudiantesEncontrados) {
+          registros.push({
+            nombreCompleto: formData.nombreCompleto.trim(),
+            email: correoParaEnviar,
+            tipoUsuario: tipoUsuarioTexto,
+            solicitaCertificado: formData.solicitaCertificado,
+            comentarios: formData.comentarios || '',
+            curso: curso["Curso"] || '',
+            pead: curso["Sección (PEAD)"] || '',
+            docente: curso["Docente"] || '',
+            planEstudio: planEstudio || ''
+          });
+        }
+      } else {
         registros.push({
           nombreCompleto: formData.nombreCompleto.trim(),
           email: correoParaEnviar,
           tipoUsuario: tipoUsuarioTexto,
           solicitaCertificado: formData.solicitaCertificado,
           comentarios: formData.comentarios || '',
-          curso: curso["Curso"] || '',
-          pead: curso["Sección (PEAD)"] || '',
-          docente: curso["Docente"] || '',
-          planEstudio: planEstudio || ''
+          curso: formData.curso || '',
+          pead: formData.pead || '',
+          docente: formData.docente || '',
+          planEstudio: ''
         });
       }
-    } else {
-      registros.push({
-        nombreCompleto: formData.nombreCompleto.trim(),
-        email: correoParaEnviar,
-        tipoUsuario: tipoUsuarioTexto,
-        solicitaCertificado: formData.solicitaCertificado,
-        comentarios: formData.comentarios || '',
-        curso: formData.curso || '',
-        pead: formData.pead || '',
-        docente: formData.docente || '',
-        planEstudio: ''
-      });
-    }
 
-    console.log(`📤 Enviando ${registros.length} registro(s)`);
-    setProgreso({ actual: 0, total: registros.length });
-
-    for (let i = 0; i < registros.length; i++) {
-      const registro = registros[i];
+      console.log(`📤 Enviando ${registros.length} registro(s)`);
       
-      setProgreso({ actual: i + 1, total: registros.length });
-
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-
-      // 🔴 VOLVER A JSON (como funcionaba antes)
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registro)
+      // 🔴 LOG DETALLADO DE CADA REGISTRO
+      registros.forEach((reg, idx) => {
+        console.log(`📝 Registro ${idx + 1}: Curso="${reg.curso}", PEAD="${reg.pead}", Docente="${reg.docente}"`);
       });
+      
+      setProgreso({ actual: 0, total: registros.length });
 
-      const result = await response.json();
-      console.log(`📥 Respuesta para ${registro.curso}:`, result);
+      for (let i = 0; i < registros.length; i++) {
+        const registro = registros[i];
+        
+        setProgreso({ actual: i + 1, total: registros.length });
 
-      if (!result.success) {
-        throw new Error(result.error || `Error al registrar ${registro.curso}`);
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registro)
+        });
+
+        const result = await response.json();
+        console.log(`📥 Respuesta para ${registro.curso}:`, result);
+
+        if (!result.success) {
+          throw new Error(result.error || `Error al registrar ${registro.curso}`);
+        }
       }
+
+      console.log(`✅ Proceso completado: ${registros.length} cursos registrados`);
+      setExitoModal(true);
+      setTimeout(() => {
+        resetearTodo();
+        setExitoModal(false);
+        setPaso('seleccion');
+      }, 3000);
+
+    } catch (error) {
+      console.error('❌ Error:', error);
+      setError(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-
-    console.log(`✅ Proceso completado: ${registros.length} cursos registrados`);
-    setExitoModal(true);
-    setTimeout(() => {
-      resetearTodo();
-      setExitoModal(false);
-      setPaso('seleccion');
-    }, 3000);
-
-  } catch (error) {
-    console.error('❌ Error:', error);
-    setError(`Error: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const resetearTodo = () => {
     setTipoUsuario('');
@@ -316,7 +314,7 @@ const EncuestaWebinar = () => {
     });
   };
 
-  // Modales y pantallas (progreso, éxito, selección, login)
+  // Modales y pantallas
   if (loading && progreso.total > 0) {
     return (
       <div style={{
@@ -564,7 +562,7 @@ const EncuestaWebinar = () => {
     );
   }
 
-  // Pantalla del formulario principal con Plan de Estudio
+  // Pantalla del formulario principal
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', fontFamily: 'Roboto, Arial, sans-serif' }}>
       <header style={{ backgroundColor: '#ffffff', borderBottom: '6px solid #63ed12', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
@@ -600,10 +598,96 @@ const EncuestaWebinar = () => {
                       <UserIcon />
                       <div className="ms-3 flex-grow-1">
                         <label className="form-label fw-bold" style={{ color: '#63ed12' }}>Nombre completo *</label>
-                        <input type="text" name="nombreCompleto" value={formData.nombreCompleto} onChange={handleChange} className="form-control" readOnly={estudiantesEncontrados.length > 0} required style={{ width: '100%', padding: '12px', border: '1px solid #dadce0', borderRadius: '4px' }} />
+                        <input
+                          type="text"
+                          name="nombreCompleto"
+                          value={formData.nombreCompleto}
+                          onChange={handleChange}
+                          className="form-control"
+                          readOnly={estudiantesEncontrados.length > 0}
+                          required
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: '1px solid #dadce0',
+                            borderRadius: '4px'
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
+
+                  {/* SELECTOR DE CURSO - Solo si tiene múltiples cursos */}
+                  {estudiantesEncontrados.length > 1 && (
+                    <div className="col-12">
+                      <div className="d-flex align-items-center p-3 rounded" style={{ backgroundColor: '#f0f7ff' }}>
+                        <BookIcon />
+                        <div className="ms-3 flex-grow-1">
+                          <label className="form-label fw-bold" style={{ color: '#5a2290' }}>
+                            Selecciona el curso a registrar
+                          </label>
+                          <select
+                            className="form-select"
+                            value={formData.curso}
+                            onChange={(e) => {
+                              const cursoSeleccionado = estudiantesEncontrados.find(c => c["Curso"] === e.target.value);
+                              if (cursoSeleccionado) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  curso: cursoSeleccionado["Curso"] || '',
+                                  pead: cursoSeleccionado["Sección (PEAD)"] || '',
+                                  docente: cursoSeleccionado["Docente"] || '',
+                                  turno: cursoSeleccionado["Turno"] || '',
+                                  dias: cursoSeleccionado["Días"] || '',
+                                  horaInicio: cursoSeleccionado["Hora inicio"] || '',
+                                  horaFin: cursoSeleccionado["Hora fin"] || ''
+                                }));
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '2px solid #5a2290',
+                              borderRadius: '8px',
+                              fontSize: '16px'
+                            }}
+                          >
+                            <option value="">Seleccione un curso</option>
+                            {estudiantesEncontrados.map((curso, idx) => (
+                              <option key={idx} value={curso["Curso"]}>
+                                {curso["Curso"]} - {curso["Sección (PEAD)"]}
+                              </option>
+                            ))}
+                          </select>
+                          <small className="text-muted">Selecciona el curso que deseas registrar</small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* INFO DE CURSO AUTOMÁTICA - cuando hay un solo curso */}
+                  {estudiantesEncontrados.length === 1 && (
+                    <>
+                      <div className="col-md-6">
+                        <div className="p-3 rounded" style={{ backgroundColor: '#e8f5e1' }}>
+                          <div className="fw-bold" style={{ color: '#63ed12' }}>Curso:</div>
+                          <div>{estudiantesEncontrados[0]["Curso"]}</div>
+                        </div>
+                      </div>
+                      <div className="col-md-6">
+                        <div className="p-3 rounded" style={{ backgroundColor: '#f0f7ff' }}>
+                          <div className="fw-bold" style={{ color: '#5a2290' }}>Sección:</div>
+                          <div>{estudiantesEncontrados[0]["Sección (PEAD)"]}</div>
+                        </div>
+                      </div>
+                      <div className="col-md-6">
+                        <div className="p-3 rounded" style={{ backgroundColor: '#e8f5e1' }}>
+                          <div className="fw-bold" style={{ color: '#63ed12' }}>Docente:</div>
+                          <div>{estudiantesEncontrados[0]["Docente"]}</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* PLAN DE ESTUDIO - Solo para estudiantes USS */}
                   {estudiantesEncontrados.length > 0 && planEstudio && (
@@ -630,37 +714,6 @@ const EncuestaWebinar = () => {
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* INFO: Se registrará en todos sus cursos */}
-                  {estudiantesEncontrados.length > 1 && (
-                    <div className="col-12">
-                      <div className="d-flex align-items-start p-3 rounded" style={{ backgroundColor: '#e8f5e1' }}>
-                        <BookIcon />
-                        <div className="ms-3 flex-grow-1">
-                          <div className="fw-bold" style={{ color: '#63ed12' }}>Te registrarás en todos tus cursos ({estudiantesEncontrados.length})</div>
-                          <ul className="mb-0 mt-2 ps-3" style={{ fontSize: '14px', color: '#1a5e20' }}>
-                            {estudiantesEncontrados.map((c, i) => {
-                              const cursoK = Object.keys(c).find(k => k.toLowerCase().includes('curso')) || "Curso";
-                              const peadK = Object.keys(c).find(k => k.toLowerCase().includes('secc')) || "Sección (PEAD)";
-                              return <li key={i}>{c[cursoK]} – {c[peadK]}</li>;
-                            })}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* INFO DE CURSO AUTOMÁTICA */}
-                  {estudiantesEncontrados.length === 1 && formData.curso && (
-                    <>
-                      <div className="col-md-6"><div className="p-3 rounded" style={{ backgroundColor: '#e8f5e1' }}><div className="fw-bold" style={{ color: '#63ed12' }}>Curso:</div><div>{formData.curso}</div></div></div>
-                      <div className="col-md-6"><div className="p-3 rounded" style={{ backgroundColor: '#f0f7ff' }}><div className="fw-bold" style={{ color: '#5a2290' }}>Sección:</div><div>{formData.pead}</div></div></div>
-                      <div className="col-md-6"><div className="p-3 rounded" style={{ backgroundColor: '#e8f5e1' }}><div className="fw-bold" style={{ color: '#63ed12' }}>Docente:</div><div>{formData.docente}</div></div></div>
-                      <div className="col-md-6"><div className="p-3 rounded" style={{ backgroundColor: '#f0f7ff' }}><div className="fw-bold" style={{ color: '#5a2290' }}>Turno:</div><div>{formData.turno}</div></div></div>
-                      <div className="col-md-6"><div className="p-3 rounded" style={{ backgroundColor: '#e8f5e1' }}><div className="fw-bold" style={{ color: '#63ed12' }}>Días:</div><div>{formData.dias}</div></div></div>
-                      <div className="col-md-6"><div className="p-3 rounded" style={{ backgroundColor: '#f0f7ff' }}><div className="fw-bold" style={{ color: '#5a2290' }}>Horario:</div><div>{formData.horaInicio} - {formData.horaFin}</div></div></div>
-                    </>
                   )}
                 </div>
               </div>
@@ -692,12 +745,56 @@ const EncuestaWebinar = () => {
 
             {/* BOTONES */}
             <div className="d-flex justify-content-between flex-wrap gap-3 mt-5">
-              <button onClick={() => { if (tipoUsuario === 'uss') { setPaso('login'); } else { setPaso('seleccion'); setTipoUsuario(''); } }} disabled={loading} style={{ padding: '12px 24px', border: '1px solid #dadce0', background: 'white', borderRadius: '4px', cursor: loading ? 'not-allowed' : 'pointer' }}>Volver</button>
-              <button onClick={enviarEncuesta} disabled={loading || !formData.nombreCompleto || (tipoUsuario === 'externo' && !correoExterno)} style={{ padding: '12px 32px', backgroundColor: (loading || !formData.nombreCompleto) ? '#f1f3f4' : '#5a2290', color: (loading || !formData.nombreCompleto) ? '#9aa0a6' : 'white', border: 'none', borderRadius: '4px', cursor: (loading || !formData.nombreCompleto) ? 'not-allowed' : 'pointer' }}>{loading ? 'Registrando...' : 'Registrar Asistencia'}</button>
+              <button
+                onClick={() => {
+                  if (tipoUsuario === 'uss') {
+                    setPaso('login');
+                  } else {
+                    setPaso('seleccion');
+                    setTipoUsuario('');
+                  }
+                }}
+                disabled={loading}
+                style={{
+                  padding: '12px 24px',
+                  border: '1px solid #dadce0',
+                  background: 'white',
+                  borderRadius: '4px',
+                  cursor: loading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Volver
+              </button>
+
+              <button
+                onClick={enviarEncuesta}
+                disabled={loading || !formData.nombreCompleto ||
+                  (tipoUsuario === 'externo' && !correoExterno) ||
+                  (estudiantesEncontrados.length > 1 && !formData.curso)}
+                style={{
+                  padding: '12px 32px',
+                  backgroundColor: (loading || !formData.nombreCompleto) ? '#f1f3f4' : '#5a2290',
+                  color: (loading || !formData.nombreCompleto) ? '#9aa0a6' : 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: (loading || !formData.nombreCompleto) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? 'Registrando...' : 'Registrar Asistencia'}
+              </button>
             </div>
 
             {!formData.nombreCompleto && (
-              <div className="alert alert-warning text-center mt-4" style={{ marginTop: '24px', padding: '12px', backgroundColor: '#fff8e1', color: '#ff6d00', borderRadius: '8px', textAlign: 'center' }}>Completa el nombre completo para poder registrar tu asistencia</div>
+              <div className="alert alert-warning text-center mt-4" style={{
+                marginTop: '24px',
+                padding: '12px',
+                backgroundColor: '#fff8e1',
+                color: '#ff6d00',
+                borderRadius: '8px',
+                textAlign: 'center'
+              }}>
+                Completa el nombre completo para poder registrar tu asistencia
+              </div>
             )}
           </div>
         </div>
