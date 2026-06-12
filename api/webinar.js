@@ -8,8 +8,8 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const GOOGLE_SCRIPT_URL =
-    'https://script.google.com/macros/s/AKfycbxXshTKXGBM3S9lxEii_ZmoVNd8sza_BEz1SmYPCpSs2Vm1e4yhj4aTl9vkxA-yb0o_/exec';
+  // 🔴 NUEVA URL VERSIÓN 4
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbwaQrMRBYIXa_CdOrGeu9hIGw1luVqA4OcnWwIV1Wr3UttVbJycEvBHtcjz6fjhBT/exec";
 
   try {
     if (req.method === 'GET') {
@@ -23,7 +23,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // 🔴 VOLVER A JSON (como funcionaba antes)
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: {
