@@ -1,5 +1,4 @@
 // api/webinar.js
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -31,12 +30,24 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       console.log('📤 Datos recibidos del frontend:', req.body);
 
+      // 🔴 CONVERTIR JSON A application/x-www-form-urlencoded
+      const params = new URLSearchParams();
+      
+      // Agregar todos los campos del body
+      for (const [key, value] of Object.entries(req.body)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value);
+        }
+      }
+
+      console.log('📤 Parámetros convertidos:', params.toString());
+
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(req.body)
+        body: params.toString()
       });
 
       const text = await response.text();
