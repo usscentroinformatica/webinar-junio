@@ -262,32 +262,19 @@ const EncuestaWebinar = () => {
       setProgreso({ actual: i + 1, total: registros.length });
 
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      const params = new URLSearchParams();
-      params.append('nombreCompleto', registro.nombreCompleto || '');
-      params.append('email', registro.email || '');
-      params.append('planEstudio', registro.planEstudio || '');
-      params.append('curso', registro.curso || '');
-      params.append('pead', registro.pead || '');
-      params.append('tipoUsuario', registro.tipoUsuario || '');
-      params.append('solicitaCertificado', registro.solicitaCertificado || 'no');
-      params.append('comentarios', registro.comentarios || '');
-      params.append('docente', registro.docente || '');
-
-      console.log('📤 Parámetros enviados:', params.toString());
-
+      // 🔴 VOLVER A JSON (como funcionaba antes)
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registro)
       });
 
       const result = await response.json();
       console.log(`📥 Respuesta para ${registro.curso}:`, result);
 
-      // 🔴 VERIFICAR EL RESULTADO DENTRO DEL BUCLE
       if (!result.success) {
         throw new Error(result.error || `Error al registrar ${registro.curso}`);
       }
