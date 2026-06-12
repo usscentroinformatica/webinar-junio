@@ -23,11 +23,20 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // 🔴 REDIRIGIR TAL CUAL SIN MODIFICAR
+      // 🔴 EL FRONTEND YA ENVÍA COMO x-www-form-urlencoded
+      // EL BODY YA ES UN STRING, LO USAMOS DIRECTAMENTE
+      const bodyString = typeof req.body === 'string' 
+        ? req.body 
+        : new URLSearchParams(req.body).toString();
+
+      console.log('📤 Body a enviar:', bodyString);
+
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: req.headers,
-        body: req.body  // El frontend ya envía como x-www-form-urlencoded
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: bodyString
       });
 
       const text = await response.text();
