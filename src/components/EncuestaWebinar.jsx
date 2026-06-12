@@ -268,21 +268,21 @@ const EncuestaWebinar = () => {
 
       // 🔴 CONVERTIR A URLSearchParams
       const params = new URLSearchParams();
-      params.append('nombreCompleto', registro.nombreCompleto || '');
-      params.append('email', registro.email || '');
-      params.append('planEstudio', registro.planEstudio || '');
-      params.append('curso', registro.curso || '');
-      params.append('pead', registro.pead || '');
-      params.append('tipoUsuario', registro.tipoUsuario || '');
-      params.append('solicitaCertificado', registro.solicitaCertificado || 'no');
-      params.append('comentarios', registro.comentarios || '');
-      params.append('docente', registro.docente || '');
+params.append('nombreCompleto', registro.nombreCompleto || '');
+params.append('email', registro.email || '');
+params.append('planEstudio', registro.planEstudio || '');
+params.append('curso', registro.curso || '');
+params.append('pead', registro.pead || '');
+params.append('tipoUsuario', registro.tipoUsuario || '');
+params.append('solicitaCertificado', registro.solicitaCertificado || 'no');
+params.append('comentarios', registro.comentarios || '');
+params.append('docente', registro.docente || '');
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
-      });
+const response = await fetch(API_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: params.toString()
+});
 
       const result = await response.json();
       console.log(`📥 Respuesta para ${registro.curso}:`, result);
