@@ -223,34 +223,19 @@ const EncuestaWebinar = () => {
       correoParaEnviar = correoExterno.trim();
     }
 
-    // 🔴 CREAR UN REGISTRO POR CADA CURSO DEL ESTUDIANTE
     const registros = [];
     
     if (esEstudianteUSS) {
       for (const curso of estudiantesEncontrados) {
-        const nombreCurso = curso["Curso"] || '';
-        const seccionPead = curso["Sección (PEAD)"] || '';
-        const nombreDocente = curso["Docente"] || '';
-        const turnoCurso = curso["Turno"] || '';
-        const diasCurso = curso["Días"] || '';
-        const horaInicioCurso = curso["Hora inicio"] || '';
-        const horaFinCurso = curso["Hora fin"] || '';
-        
-        console.log(`📚 Procesando curso: ${nombreCurso} - ${seccionPead}`);
-        
         registros.push({
           nombreCompleto: formData.nombreCompleto.trim(),
           email: correoParaEnviar,
           tipoUsuario: tipoUsuarioTexto,
           solicitaCertificado: formData.solicitaCertificado,
           comentarios: formData.comentarios || '',
-          curso: nombreCurso,
-          pead: seccionPead,
-          docente: nombreDocente,
-          turno: turnoCurso,
-          dias: diasCurso,
-          horaInicio: horaInicioCurso,
-          horaFin: horaFinCurso,
+          curso: curso["Curso"] || '',
+          pead: curso["Sección (PEAD)"] || '',
+          docente: curso["Docente"] || '',
           planEstudio: planEstudio || ''
         });
       }
@@ -264,43 +249,46 @@ const EncuestaWebinar = () => {
         curso: formData.curso || '',
         pead: formData.pead || '',
         docente: formData.docente || '',
-        turno: formData.turno || '',
-        dias: formData.dias || '',
-        horaInicio: formData.horaInicio || '',
-        horaFin: formData.horaFin || '',
         planEstudio: ''
       });
     }
 
-    console.log(`📤 Enviando ${registros.length} registro(s):`, registros);
+    console.log(`📤 Enviando ${registros.length} registro(s)`);
 
     setProgreso({ actual: 0, total: registros.length });
 
-    // 🔴 ENVIAR CADA REGISTRO CON UN DELAY DE 2 SEGUNDOS
     for (let i = 0; i < registros.length; i++) {
       const registro = registros[i];
-      console.log(`📝 Enviando registro ${i + 1}/${registros.length}:`, registro);
-
+      
       setProgreso({ actual: i + 1, total: registros.length });
 
-      // 🔴 ESPERAR 2 SEGUNDOS ENTRE CADA ENVÍO
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
+
+      // 🔴 CONVERTIR A URLSearchParams
+      const params = new URLSearchParams();
+      params.append('nombreCompleto', registro.nombreCompleto || '');
+      params.append('email', registro.email || '');
+      params.append('planEstudio', registro.planEstudio || '');
+      params.append('curso', registro.curso || '');
+      params.append('pead', registro.pead || '');
+      params.append('tipoUsuario', registro.tipoUsuario || '');
+      params.append('solicitaCertificado', registro.solicitaCertificado || 'no');
+      params.append('comentarios', registro.comentarios || '');
+      params.append('docente', registro.docente || '');
 
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registro)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
       });
 
       const result = await response.json();
       console.log(`📥 Respuesta para ${registro.curso}:`, result);
 
-      const isExito = result.data ? result.data.success : result.success;
-
-      if (!isExito) {
-        throw new Error(result.data?.error || result.error || `Error al registrar el curso ${registro.curso}`);
+      if (!result.success) {
+        throw new Error(result.error || `Error al registrar ${registro.curso}`);
       }
     }
 
