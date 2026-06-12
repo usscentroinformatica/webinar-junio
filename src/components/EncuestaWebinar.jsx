@@ -258,35 +258,37 @@ const EncuestaWebinar = () => {
     setProgreso({ actual: 0, total: registros.length });
 
     for (let i = 0; i < registros.length; i++) {
-      const registro = registros[i];
-      
-      setProgreso({ actual: i + 1, total: registros.length });
+  const registro = registros[i];
+  
+  setProgreso({ actual: i + 1, total: registros.length });
 
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
+  if (i > 0) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
 
-      // 🔴 CONVERTIR A URLSearchParams
-      const params = new URLSearchParams();
-params.append('nombreCompleto', registro.nombreCompleto || '');
-params.append('email', registro.email || '');
-params.append('planEstudio', registro.planEstudio || '');
-params.append('curso', registro.curso || '');
-params.append('pead', registro.pead || '');
-params.append('tipoUsuario', registro.tipoUsuario || '');
-params.append('solicitaCertificado', registro.solicitaCertificado || 'no');
-params.append('comentarios', registro.comentarios || '');
-params.append('docente', registro.docente || '');
+  // 🔴 CONSTRUIR PARAMETROS
+  const params = new URLSearchParams();
+  params.append('nombreCompleto', registro.nombreCompleto || '');
+  params.append('email', registro.email || '');
+  params.append('planEstudio', registro.planEstudio || '');
+  params.append('curso', registro.curso || '');
+  params.append('pead', registro.pead || '');
+  params.append('tipoUsuario', registro.tipoUsuario || '');
+  params.append('solicitaCertificado', registro.solicitaCertificado || 'no');
+  params.append('comentarios', registro.comentarios || '');
+  params.append('docente', registro.docente || '');
 
-const response = await fetch(API_URL, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  body: params.toString()
-});
+  console.log('📤 Parámetros enviados:', params.toString());
 
-      const result = await response.json();
-      console.log(`📥 Respuesta para ${registro.curso}:`, result);
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
 
+  const result = await response.json();
+  console.log(`📥 Respuesta para ${registro.curso}:`, result);
+}
       if (!result.success) {
         throw new Error(result.error || `Error al registrar ${registro.curso}`);
       }
