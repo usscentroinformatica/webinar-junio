@@ -227,7 +227,6 @@ const EncuestaWebinar = () => {
     const registros = [];
     
     if (esEstudianteUSS) {
-      // Para cada curso del estudiante, crear un registro
       for (const curso of estudiantesEncontrados) {
         const nombreCurso = curso["Curso"] || '';
         const seccionPead = curso["Sección (PEAD)"] || '';
@@ -256,7 +255,6 @@ const EncuestaWebinar = () => {
         });
       }
     } else {
-      // Usuario externo: un solo registro
       registros.push({
         nombreCompleto: formData.nombreCompleto.trim(),
         email: correoParaEnviar,
@@ -278,12 +276,17 @@ const EncuestaWebinar = () => {
 
     setProgreso({ actual: 0, total: registros.length });
 
-    // Enviar cada registro individualmente
+    // 🔴 ENVIAR CADA REGISTRO CON UN DELAY DE 2 SEGUNDOS
     for (let i = 0; i < registros.length; i++) {
       const registro = registros[i];
       console.log(`📝 Enviando registro ${i + 1}/${registros.length}:`, registro);
 
       setProgreso({ actual: i + 1, total: registros.length });
+
+      // 🔴 ESPERAR 2 SEGUNDOS ENTRE CADA ENVÍO
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -298,11 +301,6 @@ const EncuestaWebinar = () => {
 
       if (!isExito) {
         throw new Error(result.data?.error || result.error || `Error al registrar el curso ${registro.curso}`);
-      }
-
-      // Pequeña pausa entre registros para evitar sobrecarga
-      if (i < registros.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
