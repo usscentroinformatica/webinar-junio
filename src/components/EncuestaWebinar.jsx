@@ -117,63 +117,74 @@ const EncuestaWebinar = () => {
     }
   };
 
-  const verificarCorreoUSS = async () => {
-    if (!nombreUsuario.trim()) {
-      setError('Por favor, ingresa tu nombre de usuario');
-      return;
-    }
+  const verificarCorreoUSS = async () => {const verificarCorreoUSS = async () => {
+  if (!nombreUsuario.trim()) {
+    setError('Por favor, ingresa tu nombre de usuario');
+    return;
+  }
 
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  setError('');
 
-    const emailBuscado = `${nombreUsuario.trim().toLowerCase()}@uss.edu.pe`;
-    console.log('🔍 Buscando email exacto:', emailBuscado);
-    console.log('📊 Total registros en base:', baseEstudiantes.length);
+  const emailBuscado = `${nombreUsuario.trim().toLowerCase()}@uss.edu.pe`;
+  console.log('🔍 Buscando email exacto:', emailBuscado);
+  console.log('📊 Total registros en base:', baseEstudiantes.length);
 
-    if (!baseEstudiantes.length) {
-      setError('Base de datos no disponible. Intenta más tarde.');
-      setLoading(false);
-      return;
-    }
-
-    const estudiantesCoincidentes = baseEstudiantes.filter(estudiante => {
-      const emailBase = estudiante["Correo institucional"];
-      if (emailBase && typeof emailBase === 'string') {
-        const emailLimpio = emailBase.trim().toLowerCase();
-        if (emailLimpio === emailBuscado) {
-          console.log('✅ Email encontrado exactamente:', emailBase);
-          return true;
-        }
-      }
-      return false;
-    });
-
-    console.log('📚 Cursos encontrados:', estudiantesCoincidentes.length);
-
-    if (estudiantesCoincidentes.length === 0) {
-      const emailsEjemplo = baseEstudiantes.slice(0, 5).map(e => e["Correo institucional"]);
-      console.log('📧 Ejemplos de emails en la base:', emailsEjemplo);
-      setError(`❌ Usuario "${nombreUsuario}" no encontrado. Verifica tu usuario o contacta al administrador.`);
-      setLoading(false);
-      return;
-    }
-
-    // 🔴 LOG PARA VER LOS DATOS REALES
-    console.log('🔍 DATOS DEL PRIMER CURSO:', estudiantesCoincidentes[0]);
-    console.log('🔍 VALOR DE "Curso":', estudiantesCoincidentes[0]?.["Curso"]);
-    console.log('🔍 VALOR DE "Sección (PEAD)":', estudiantesCoincidentes[0]?.["Sección (PEAD)"]);
-    console.log('🔍 VALOR DE "Docente":', estudiantesCoincidentes[0]?.["Docente"]);
-
-    setEstudiantesEncontrados(estudiantesCoincidentes);
-
-    const planEstudioValue = estudiantesCoincidentes[0]["PlanEstudio"] || '';
-    console.log('📖 PlanEstudio encontrado:', planEstudioValue);
-    setPlanEstudio(planEstudioValue);
-
-    // No establecemos formData con un solo curso, permitimos que el usuario seleccione
-    setPaso('formulario');
+  if (!baseEstudiantes.length) {
+    setError('Base de datos no disponible. Intenta más tarde.');
     setLoading(false);
-  };
+    return;
+  }
+
+  // 🔴 OBTENER TODOS LOS CURSOS DEL ESTUDIANTE (no solo uno)
+  const estudiantesCoincidentes = baseEstudiantes.filter(estudiante => {
+    const emailBase = estudiante["Correo institucional"];
+    if (emailBase && typeof emailBase === 'string') {
+      const emailLimpio = emailBase.trim().toLowerCase();
+      if (emailLimpio === emailBuscado) {
+        console.log('✅ Curso encontrado:', estudiante["Curso"], '-', estudiante["Sección (PEAD)"]);
+        return true;
+      }
+    }
+    return false;
+  });
+
+  console.log('📚 TOTAL DE CURSOS ENCONTRADOS:', estudiantesCoincidentes.length);
+
+  if (estudiantesCoincidentes.length === 0) {
+    const emailsEjemplo = baseEstudiantes.slice(0, 5).map(e => e["Correo institucional"]);
+    console.log('📧 Ejemplos de emails en la base:', emailsEjemplo);
+    setError(`❌ Usuario "${nombreUsuario}" no encontrado. Verifica tu usuario o contacta al administrador.`);
+    setLoading(false);
+    return;
+  }
+
+  // 🔴 GUARDAR TODOS LOS CURSOS
+  setEstudiantesEncontrados(estudiantesCoincidentes);
+
+  const planEstudioValue = estudiantesCoincidentes[0]["PlanEstudio"] || '';
+  console.log('📖 PlanEstudio encontrado:', planEstudioValue);
+  setPlanEstudio(planEstudioValue);
+
+  // 🔴 OBTENER EL NOMBRE COMPLETO DEL PRIMER CURSO (es el mismo para todos)
+  const primerCurso = estudiantesCoincidentes[0];
+  
+  setFormData({
+    nombreCompleto: primerCurso["Nombre completo"] || '',
+    curso: '',
+    pead: '',
+    docente: '',
+    turno: '',
+    dias: '',
+    horaInicio: '',
+    horaFin: '',
+    solicitaCertificado: 'no',
+    comentarios: ''
+  });
+
+  setPaso('formulario');
+  setLoading(false);
+};
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -194,105 +205,110 @@ const EncuestaWebinar = () => {
   };
 
   const enviarEncuesta = async () => {
-    if (!formData.nombreCompleto.trim()) {
-      setError('El nombre completo es requerido');
-      return;
+  if (!formData.nombreCompleto.trim()) {
+    setError('El nombre completo es requerido');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+
+  try {
+    const esEstudianteUSS = tipoUsuario === 'uss' && estudiantesEncontrados.length > 0;
+    const tipoUsuarioTexto = esEstudianteUSS ? 'Estudiante USS' : 'Externo';
+    let correoParaEnviar = '';
+
+    if (esEstudianteUSS) {
+      correoParaEnviar = `${nombreUsuario}@uss.edu.pe`.toLowerCase();
+    } else if (tipoUsuario === 'externo') {
+      if (!correoExterno.trim()) {
+        throw new Error('El correo electrónico es requerido');
+      }
+      correoParaEnviar = correoExterno.trim();
     }
 
-    setLoading(true);
-    setError('');
-
-    try {
-      const esEstudianteUSS = tipoUsuario === 'uss' && estudiantesEncontrados.length > 0;
-      const tipoUsuarioTexto = esEstudianteUSS ? 'Estudiante USS' : 'Externo';
-      let correoParaEnviar = '';
-
-      if (esEstudianteUSS) {
-        correoParaEnviar = `${nombreUsuario}@uss.edu.pe`.toLowerCase();
-      } else if (tipoUsuario === 'externo') {
-        if (!correoExterno.trim()) {
-          throw new Error('El correo electrónico es requerido');
-        }
-        correoParaEnviar = correoExterno.trim();
-      }
-
-      const registros = [];
-      
-      if (esEstudianteUSS) {
-        for (const curso of estudiantesEncontrados) {
-          registros.push({
-            nombreCompleto: formData.nombreCompleto.trim(),
-            email: correoParaEnviar,
-            tipoUsuario: tipoUsuarioTexto,
-            solicitaCertificado: formData.solicitaCertificado,
-            comentarios: formData.comentarios || '',
-            curso: curso["Curso"] || '',
-            pead: curso["Sección (PEAD)"] || '',
-            docente: curso["Docente"] || '',
-            planEstudio: planEstudio || ''
-          });
-        }
-      } else {
+    // 🔴 CREAR UN REGISTRO POR CADA CURSO DEL ESTUDIANTE
+    const registros = [];
+    
+    if (esEstudianteUSS) {
+      // Para CADA curso del estudiante, crear un registro
+      for (const curso of estudiantesEncontrados) {
+        const nombreCurso = curso["Curso"] || '';
+        const seccionPead = curso["Sección (PEAD)"] || '';
+        const nombreDocente = curso["Docente"] || '';
+        
+        console.log(`📚 Procesando curso: ${nombreCurso} - ${seccionPead}`);
+        
         registros.push({
           nombreCompleto: formData.nombreCompleto.trim(),
           email: correoParaEnviar,
           tipoUsuario: tipoUsuarioTexto,
           solicitaCertificado: formData.solicitaCertificado,
           comentarios: formData.comentarios || '',
-          curso: formData.curso || '',
-          pead: formData.pead || '',
-          docente: formData.docente || '',
-          planEstudio: ''
+          curso: nombreCurso,
+          pead: seccionPead,
+          docente: nombreDocente,
+          planEstudio: planEstudio || ''
         });
       }
-
-      console.log(`📤 Enviando ${registros.length} registro(s)`);
-      
-      // 🔴 LOG DETALLADO DE CADA REGISTRO
-      registros.forEach((reg, idx) => {
-        console.log(`📝 Registro ${idx + 1}: Curso="${reg.curso}", PEAD="${reg.pead}", Docente="${reg.docente}"`);
+    } else {
+      // Usuario externo: un solo registro
+      registros.push({
+        nombreCompleto: formData.nombreCompleto.trim(),
+        email: correoParaEnviar,
+        tipoUsuario: tipoUsuarioTexto,
+        solicitaCertificado: formData.solicitaCertificado,
+        comentarios: formData.comentarios || '',
+        curso: formData.curso || '',
+        pead: formData.pead || '',
+        docente: formData.docente || '',
+        planEstudio: ''
       });
+    }
+
+    console.log(`📤 Enviando ${registros.length} registro(s) automáticamente`);
+    setProgreso({ actual: 0, total: registros.length });
+
+    // Enviar CADA registro individualmente
+    for (let i = 0; i < registros.length; i++) {
+      const registro = registros[i];
       
-      setProgreso({ actual: 0, total: registros.length });
+      setProgreso({ actual: i + 1, total: registros.length });
 
-      for (let i = 0; i < registros.length; i++) {
-        const registro = registros[i];
-        
-        setProgreso({ actual: i + 1, total: registros.length });
-
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(registro)
-        });
-
-        const result = await response.json();
-        console.log(`📥 Respuesta para ${registro.curso}:`, result);
-
-        if (!result.success) {
-          throw new Error(result.error || `Error al registrar ${registro.curso}`);
-        }
+      // Esperar 2 segundos entre envíos para evitar conflictos
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      console.log(`✅ Proceso completado: ${registros.length} cursos registrados`);
-      setExitoModal(true);
-      setTimeout(() => {
-        resetearTodo();
-        setExitoModal(false);
-        setPaso('seleccion');
-      }, 3000);
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registro)
+      });
 
-    } catch (error) {
-      console.error('❌ Error:', error);
-      setError(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+      const result = await response.json();
+      console.log(`📥 Respuesta para ${registro.curso}:`, result);
+
+      if (!result.success) {
+        throw new Error(result.error || `Error al registrar ${registro.curso}`);
+      }
     }
-  };
+
+    console.log(`✅ Proceso completado: ${registros.length} cursos registrados`);
+    setExitoModal(true);
+    setTimeout(() => {
+      resetearTodo();
+      setExitoModal(false);
+      setPaso('seleccion');
+    }, 3000);
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    setError(`Error: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetearTodo = () => {
     setTipoUsuario('');
