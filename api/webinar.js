@@ -23,13 +23,16 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // 🔴 EL FRONTEND YA ENVÍA COMO x-www-form-urlencoded
-      // EL BODY YA ES UN STRING, LO USAMOS DIRECTAMENTE
-      const bodyString = typeof req.body === 'string' 
-        ? req.body 
-        : new URLSearchParams(req.body).toString();
+      // Obtener el body como string
+      let bodyString;
+      
+      if (typeof req.body === 'string') {
+        bodyString = req.body;
+      } else {
+        bodyString = new URLSearchParams(req.body).toString();
+      }
 
-      console.log('📤 Body a enviar:', bodyString);
+      console.log('📤 Body a enviar a Google Script:', bodyString);
 
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
@@ -40,13 +43,20 @@ export default async function handler(req, res) {
       });
 
       const text = await response.text();
-      console.log('📥 Respuesta:', text);
+      console.log('📥 Respuesta CRUDA de Google Script:', text);
 
+      // Intentar parsear como JSON
       let data;
       try {
         data = JSON.parse(text);
       } catch (e) {
-        data = { success: false, error: text };
+        // Si no es JSON, devolver un objeto de error con el texto
+        console.error('❌ No es JSON válido:', text.substring(0, 200));
+        data = { 
+          success: false, 
+          error: 'El servidor respondió con un formato inválido',
+          raw: text.substring(0, 200)
+        };
       }
 
       return res.status(200).json(data);
@@ -55,7 +65,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ Error en proxy:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
