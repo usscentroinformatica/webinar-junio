@@ -491,7 +491,7 @@ const EncuestaWebinar = () => {
           <div className="card" style={{ width: '100%', maxWidth: '680px' }}>
             <div className="card-header" style={{ backgroundColor: '#5a2290', color: 'white', textAlign: 'center', border: 'none' }}>
               <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '400' }}>REGISTRO WEBINAR</h2>
-              <div style={{ marginTop: '12px', fontSize: '16px', fontWeight: '500' }}>2026 MAYO</div>
+              <div style={{ marginTop: '12px', fontSize: '16px', fontWeight: '500' }}>2026 JUNIO</div>
             </div>
             <div className="card-body" style={{ padding: '40px' }}>
               <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -590,7 +590,7 @@ const EncuestaWebinar = () => {
         <div className="card mx-auto" style={{ maxWidth: '680px' }}>
           <div className="card-header" style={{ backgroundColor: '#5a2290', color: 'white', textAlign: 'center', position: 'relative', border: 'none' }}>
             <h1 className="mb-2" style={{ fontSize: '28px', fontWeight: '400' }}>REGISTRO WEBINAR</h1>
-            <div style={{ fontSize: '16px' }}>2026 MAYO</div>
+            <div style={{ fontSize: '16px' }}>2026 JUNIO</div>
             <div style={{ fontSize: '14px', opacity: 0.9, marginTop: '8px' }}>{estudiantesEncontrados.length > 0 ? 'Datos autocompletados de BaseUnificada' : 'Usuario Externo - Completa tus datos'}</div>
             {estudiantesEncontrados.length > 1 && (
               <div style={{ marginTop: '12px', backgroundColor: '#63ed12', color: '#000', padding: '8px', borderRadius: '8px', fontWeight: 'bold' }}>
